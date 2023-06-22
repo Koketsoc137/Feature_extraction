@@ -39,9 +39,9 @@ galaxyzooq_dir = "/idia/projects/hippo/Koketso/galaxyzoo/resized/galaxy_zoo_clas
 
 
 #Training arguments
-model_name = "Resnet18_final_random_initial"
+model_name = "Resnet18_final_largerweight"
 patience = 5
-l_r = 1e-4
+l_r = 1e-5
 best_loss = 5000000
 
 
@@ -72,33 +72,12 @@ wandb.init(
 
 #Define the model
 
-model = tv.models.resnet18(weights = None)
+model = tv.models.resnet18(weights = "IMAGENET1K_V1")
 #model.weight.data.normal_(0,0.01)
 model.fc = torch.nn.Linear(512,100)
 model.fc.weight.data.normal_(0,0.01)
 
 
-
-#Define a random rotation function that excludes the edges of the rotated images
-# The augmentations
-
-class RandomRotationWithCrop(K.RandomRotation):
-    def __init__(self, degrees, crop_size, output_dim = 244,p = 0.5):
-        super(RandomRotationWithCrop, self).__init__(degrees, p = 1)
-        #super(RandomRotationWithCrop, self).__init__(crop_size)
-        self.rotation_transform = K.RandomRotation(degrees)
-        self.crop_transform = K.CenterCrop(crop_size, keepdim = False,align_corners = True)
-        self.resize_transform = K.Resize(output_dim)
-    def __call__(self, x):
-        if random.random() <self.p:
-            # Apply random rotation
-            x = self.rotation_transform(x)
-
-            # Apply center crop
-            x = self.crop_transform(x)
-            x = self.resize_transform(x)
-
-        return x
     
     
 # Define a feature extractor for classification based validation
@@ -218,7 +197,7 @@ augment_fn = torch.nn.Sequential(
     
    
 
-        RandomRotationWithCrop(degrees = [0,360],crop_size =200,p =r_r),
+        Custom.RandomRotationWithCrop(degrees = [0,360],crop_size =200,p =r_r),
     
         kornia.augmentation.RandomResizedCrop([244,244],scale =(0.7,1), p = r_c),
         K.RandomGaussianBlur(kernel_size = [3,3],sigma = [1,2], p =g_p)
@@ -304,7 +283,7 @@ for epoch in range(300):
             'model_state_dict': model.state_dict(),
             'loss': loss,
             'augmentations':augment_fn,
-            }, "./Features/models_/"+model_name)
+            }, "./Features/models_/"+model_name+".pt")
         
     
         counter = 0
