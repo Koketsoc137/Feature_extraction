@@ -169,7 +169,7 @@ def shade(embedded_dataset,predictions,numof_class = 2,name ="Embedding",save = 
     plt.style.use("seaborn")
     plt.figure(figsize=(7,5))
     #plt.figure(facecolor="g")
-    faint_alpha = 0.1
+    faint_alpha = alpha*2
     non_faint_alpha = alpha
     legend = []
     samples = []
@@ -181,9 +181,13 @@ def shade(embedded_dataset,predictions,numof_class = 2,name ="Embedding",save = 
             alpha = faint_alpha
         else:
             alpha = non_faint_alpha
-  
+        
+        if i ==0:
+            col = "black"
+        else:
+            col = np.random.rand(1, 3)[0]
                     
-        plt.scatter(classes[i][:,0],classes[i][:,1],s = 2,c = np.random.rand(1, 3)[0],alpha = alpha)
+        plt.scatter(classes[i][:,0],classes[i][:,1],s = 2,c = col,alpha = alpha)
         legend.append(str(i) +": " +colours[i] + " Cluster ")    
     if label ==True:
         if gz == True:
