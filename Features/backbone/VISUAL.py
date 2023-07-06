@@ -171,7 +171,7 @@ def shade(embedded_dataset,predictions,numof_class = 2,name ="Embedding",save = 
     #Plotting the classses
         #Initialize plot
     plt.style.use("seaborn")
-    plt.figure(figsize=(8,8))
+    plt.figure(figsize=(10,10))
     #plt.figure(facecolor="g")
     faint_alpha = alpha*2
     non_faint_alpha = alpha
@@ -190,8 +190,8 @@ def shade(embedded_dataset,predictions,numof_class = 2,name ="Embedding",save = 
             if i ==0:
                 col = "black"
             else:
-                col = np.random.rand(1, 3)[0]
-                #col = colours[i]
+                #col = np.random.rand(1, 3)[0]
+                col = colours[i]
 
             plt.scatter(classes[i][:,0],classes[i][:,1],s = 2,c = col,alpha = alpha)
             legend.append(str(i) +": " +colours[i] + " Cluster ")
@@ -200,12 +200,12 @@ def shade(embedded_dataset,predictions,numof_class = 2,name ="Embedding",save = 
     if label ==True:
         if gz == True:
             legend = legendd
-        plt.legend(legend, loc=(1, 0),markerscale = 5)
+        plt.legend(legend, loc=(1, 0),markerscale = 7, fontsize = 22)
     else:
-        plt.legend([str(numof_class)+" Classes"],loc ='lower right')
+        plt.legend([str(numof_class)+" Classes"],loc ='lower right',fontsize = 22)
 
         
-    plt.title(name,fontsize = 10)
+    plt.title(name,fontsize = 22)
     if limits != None:
         plt.xlim((limits[0],limits[1]))
         plt.ylim((limits[2],limits[3]))
