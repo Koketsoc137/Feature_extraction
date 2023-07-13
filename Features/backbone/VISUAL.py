@@ -138,7 +138,18 @@ def HDBSCAN(reduced_data,min_cluster_size = 50,min_samples = 30):
 
 # Shades en embedded 2D  dataset accoriding to clustering labels
 
-def shade(embedded_dataset,predictions,numof_class = 2,name ="Embedding",save = False,label = True,gz = False, alpha = 0.2, legendd =[],faint_class = -1, limits = None):
+def shade(embedded_dataset,
+          predictions,
+          numof_class = 2,
+          name ="Embedding",
+          save = False,
+          label = True,
+          gz = False, 
+          alpha = 0.2, 
+          legendd =[],
+          faint_class = -1, 
+          limits = None, 
+         hard_coloring = False):
     colours = ['black','blue','purple','yellow','red','green','orange','cyan','magenta']*100
     import matplotlib.cm as cm
     #colours = cm.rainbow(np.linspace(0, 1, numof_class))
@@ -190,12 +201,16 @@ def shade(embedded_dataset,predictions,numof_class = 2,name ="Embedding",save = 
             if i ==0:
                 col = "black"
             else:
-                #col = np.random.rand(1, 3)[0]
-                col = colours[i]
+                if hard_coloring:
+                    col = colours[i]
+                else:
+                    col = np.random.rand(1, 3)[0]
+
 
             plt.scatter(classes[i][:,0],classes[i][:,1],s = 2,c = col,alpha = alpha)
             legend.append(str(i) +": " +colours[i] + " Cluster ")
         except:
+            numof_class = numof_class-1
             continue
     if label ==True:
         if gz == True:
