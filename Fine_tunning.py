@@ -16,15 +16,24 @@ import time
 importlib.reload(Custom)
 import random
 import wandb
+import matplotlib
+font = {'family' : 'normal',
+        'weight' : 'bold',
+        'size'   : 22}
 
 #The code parameters:
 #augmentation probabilitiees
-g_p = 0.3
-v_p = 0
-h_p = 0
-g_r = 0.1
+g_p = 0.5
+v_p = 0.5
+h_p = 0.5
+g_r = 0.0
 r_r = 0.7
 r_c = 0.7
+valsplit = 0.1
+initial_weights = True
+continuation = True
+
+epochs = 20
 
 #Dataset arguments
 batch_size = 128
@@ -33,21 +42,23 @@ resize = 300
 
 #training image floder
 galaxyzoo_dir = "/idia/projects/hippo/Koketso/galaxyzoo/galaxy_zoo"
+#galaxyzoo_dir = "/idia/projects/hippo/Koketso/galaxyzoo/galaxy_zoo_12"
+
 #Class validation image folder
 galaxyzooq_dir = "/idia/projects/hippo/Koketso/galaxyzoo/resized/galaxy_zoo_class"
 
 
 
 #Training arguments
-model_name = "Resnet18_final_largerweight"
+model_name = "Resnet18_Just_All_20"
 patience = 5
-l_r = 1e-5
+l_r = 1e-4
 best_loss = 5000000
 
 
 wandb.init(
     # set the wandb project where this run will be logged
-    project="BYOL Galaxy Zoo Final",
+    project="BYOL Galaxy Zoo Final Final",
     
     # track hyperparameters and run metadata
     config={
@@ -60,9 +71,10 @@ wandb.init(
     "augmentation (gblur)":g_p,
     "augmentation (crop)":r_c,
 
-    "epochs": 300,
+    "epochs": epochs,
     "patience":patience,
-    "batch size":batch_size
+    "batch size":batch_size,
+    "val_split":valsplit
     }
 )
 
@@ -71,11 +83,17 @@ wandb.init(
 
 
 #Define the model
-
-model = tv.models.resnet18(weights = "IMAGENET1K_V1")
+if initial_weights:
+    model = tv.models.resnet18(weights = "IMAGENET1K_V1")
+else:
+    model = tv.models.resnet18(weights = None)
+    
 #model.weight.data.normal_(0,0.01)
 model.fc = torch.nn.Linear(512,100)
 model.fc.weight.data.normal_(0,0.01)
+
+
+
 
 
     
@@ -139,7 +157,7 @@ names = [name[0].split('/')[-1] for name in dataset.imgs]
 
 classification_val_dataset = Custom.dataset(galaxyzooq_dir)
 
-datasets = Custom.train_val_dataset(dataset, val_split = 0.1)
+datasets = Custom.train_val_dataset(dataset, val_split = valsplit)
 
 #Traning
 
@@ -153,7 +171,7 @@ transformed_train_dataset = Custom.Custom(datasets['train'],
 loader = DataLoader(transformed_train_dataset, 
                     batch_size, 
                     shuffle = True,
-                    num_workers = 15)
+                    num_workers = 32)
 
 #validation
 
@@ -166,7 +184,7 @@ transformed_val_dataset = Custom.Custom(datasets['val'],
 val_loader = DataLoader(transformed_val_dataset, 
                     batch_size, 
                     shuffle = True,
-                    num_workers = 15)
+                    num_workers = 32)
 
 
 #Classification validation
@@ -182,7 +200,7 @@ transformed_classification_val_dataset = Custom.Custom_labelled(classification_v
 class_loader = DataLoader(transformed_classification_val_dataset, 
                     batch_size, 
                     shuffle = True,
-                    num_workers = 15)
+                    num_workers = 32)
 
 
 
@@ -198,6 +216,8 @@ augment_fn = torch.nn.Sequential(
    
 
         Custom.RandomRotationWithCrop(degrees = [0,360],crop_size =200,p =r_r),
+        kornia.augmentation.RandomVerticalFlip( p = v_p),
+        kornia.augmentation.RandomHorizontalFlip( p = h_p),
     
         kornia.augmentation.RandomResizedCrop([244,244],scale =(0.7,1), p = r_c),
         K.RandomGaussianBlur(kernel_size = [3,3],sigma = [1,2], p =g_p)
@@ -224,15 +244,32 @@ learner = learner.to(device)
 opt = torch.optim.Adam(learner.parameters(), lr=l_r)
 
 
+#
+if continuation:
+    try:
+        epoch = torch.load("Features/models_/"+model_name+".pt",map_location = "cpu")['epoch']
+
+        model.load_state_dict.load("Features/models_/"+model_name+".pt",map_location = "cpu")['model_state_dict']
+        
+        opt.load_state_dict.load(("Features/models_/"+model_name+".pt",map_location = "cpu")['optimizer_state_dict']
+
+    else:
+        epoch = 0
+
+
+
     
 #Classification validatation
 learner.eval()
+val_accuracies = []
 a,b = features(class_loader,learner)
+
+val_accuracies.append([a,b])
 val_ac = test.KNN_accuracy(a,b)[0].item()
 wandb.log({"Classification Validation":float(val_ac)})
 
 # Self_supervised training
-for epoch in range(300):
+while epoch <= epochs:
     
     loss_ = 0.0
     learner.train()
@@ -283,24 +320,37 @@ for epoch in range(300):
             'model_state_dict': model.state_dict(),
             'loss': loss,
             'augmentations':augment_fn,
-            }, "./Features/models_/"+model_name+".pt")
+            }, "./Features/models_/"+"best_"+model_name+".pt")
         
     
         counter = 0
     else:
         counter += 1
         
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'loss': loss,
+            'augmentations':augment_fn,
+            'optimizer_state_dict': opt.state_dict(),
+            }, "./Features/models_/"+model_name+".pt")    
+        
     #Classification validatation
     a,b = features(class_loader,learner)
+    val_accuracies.append([a,b])
     val_ac = test.KNN_accuracy(a,b)[0].item()
     wandb.log({"Classification Validation":float(val_ac)})
+    epoch +=1
     
 
-    
+"""    
 
     # Check if early stopping criteria are met
     if counter >= patience:
         print("Early stopping: No improvement in validation loss for {} epochs".format(patience))
         wandb.finish()
         break
-        
+"""        
+save_to = "Features/losses/"+model_name+"accuracies"+".plk"        
+with open(save_to,'wb') as file:
+    pickle.dump(val_accuracies,file)        
