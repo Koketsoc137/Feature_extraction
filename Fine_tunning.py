@@ -50,7 +50,7 @@ galaxyzooq_dir = "/idia/projects/hippo/Koketso/galaxyzoo/resized/galaxy_zoo_clas
 
 
 #Training arguments
-model_name = "Resnet18_Just_All_20"
+model_name = "best_Resnet18_Just_All_20"
 patience = 5
 l_r = 1e-4
 best_loss = 5000000
@@ -246,15 +246,18 @@ opt = torch.optim.Adam(learner.parameters(), lr=l_r)
 
 #
 if continuation:
+    
     try:
         epoch = torch.load("Features/models_/"+model_name+".pt",map_location = "cpu")['epoch']
 
-        model.load_state_dict.load("Features/models_/"+model_name+".pt",map_location = "cpu")['model_state_dict']
+        model.load_state_dict(torch.load("Features/models_/"+model_name+".pt",map_location = "cpu")['model_state_dict'])
         
-        opt.load_state_dict.load(("Features/models_/"+model_name+".pt",map_location = "cpu")['optimizer_state_dict']
+        opt.load_state_dict(torch.load("Features/models_/"+model_name+".pt",map_location = "cpu")['optimizer_state_dict'])
 
-    else:
+    except:
         epoch = 0
+                       
+                                 
 
 
 
@@ -327,7 +330,7 @@ while epoch <= epochs:
     else:
         counter += 1
         
-        torch.save({
+    torch.save({
             'epoch': epoch,
             'model_state_dict': model.state_dict(),
             'loss': loss,
