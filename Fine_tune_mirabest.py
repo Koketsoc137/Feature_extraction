@@ -38,7 +38,7 @@ if __name__ == '__main__':
     l_r = 1e-4
 
     initial_weights = True
-    continuation = True
+    continuation = False
     model_name = "Resnet_Mirabest_ImageNet"
 
     epochs = 20
@@ -78,8 +78,6 @@ if __name__ == '__main__':
 
                 i+=1
 
-                clear_output(wait = True)
-                display(i*batch_size)
                 
         #Unwrappping the data
         rep2 = []
@@ -221,6 +219,9 @@ if __name__ == '__main__':
         except:
             epoch = 0
             val_accuracies = []
+    else:
+            epoch = 0
+            val_accuracies = []
 
 
 
@@ -257,7 +258,7 @@ if __name__ == '__main__':
             loss_ += loss.item()
             loss_per_500 = loss_
             #display(progress)
-            if i%50 ==0:
+            if i%5 ==0:
                 print("Batch epoch :"+ str(epoch) + " Loss :" + str(loss.item()))
         
         
