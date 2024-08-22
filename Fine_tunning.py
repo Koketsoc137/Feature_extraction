@@ -20,6 +20,7 @@ import random
 import wandb
 import matplotlib
 
+
 if __name__ == '__main__': 
     font = {'family' : 'normal',
             'weight' : 'bold',
